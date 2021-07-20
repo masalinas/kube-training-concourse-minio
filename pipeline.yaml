@@ -1,0 +1,67 @@
+resource_types:
+- name: kubernetes
+  type: docker-image
+  source:
+    repository: zlabjp/kubernetes-resource
+    tag: latest
+
+resources:
+# The repo with our Dockerfile
+- name: concourse-examples
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/masalinas/expressjs.git
+    branch: master
+
+# Where we will push the image to
+- name: simple-image
+  type: registry-image
+  icon: docker
+  source:
+    repository: 192.168.49.2:5000/expressjs
+    tag: latest
+
+# Where deploy the image to
+- name: kubernetes-cluster
+  type: kubernetes
+  icon: kubernetes
+  source:
+    server: {{server}}
+    certificate_authority: {{certificate_authority}}
+    namespace: {{kubernetes-namespace}}
+    token: {{token}}
+
+jobs:
+- name: docker-build-and-push
+  plan:
+  - get: concourse-examples
+  - task: build-task-image
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: vito/oci-build-task
+      inputs:
+      - name: concourse-examples
+      outputs:
+      - name: image
+      params:
+        CONTEXT: concourse-examples
+      run:
+        path: build
+  - put: simple-image
+    params:
+      image: image/image.tar
+- name: deploy-application
+  plan:
+    - get: simple-image
+      trigger: true
+      passed:
+        - docker-build-and-push
+    - put: kubernetes-cluster
+      params:
+        kubectl: create deployment -n default expressjs --image=localhost:5000/expressjs
+        wait_until_ready: 300

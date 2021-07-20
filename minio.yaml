@@ -1,0 +1,65 @@
+## Create persistent volume claim for minio to store data.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: minio
+  name: minio-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+## Run minio deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: minio
+  name: minio-deployment  
+  labels:
+    app: minio  
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+        app: minio    
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        image: minio/minio
+        args:
+        - server
+        - /data
+        volumeMounts:
+        - name: data 
+          mountPath: "/data"        
+        env:
+        - name: MINIO_ACCESS_KEY
+          value: "minio"
+        - name: MINIO_SECRET_KEY
+          value: "minio123"
+        ports:
+        - containerPort: 9000
+          hostPort: 9000
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: minio
+  name: minio-service
+spec:
+  selector:
+    app: minio
+  ports:
+    - port: 9000
+      targetPort: 9000                    
