@@ -1,5 +1,5 @@
 resource_types:
-  # The resource type to execute any kubectl command 
+  # The resource type to execute any kubectl command
 - name: kubernetes
   type: docker-image
   source:
@@ -28,10 +28,10 @@ resources:
   type: kubernetes
   icon: kubernetes
   source:
-    server: {{server}}
-    certificate_authority: {{certificate_authority}}
-    namespace: {{kubernetes-namespace}}
-    token: {{token}}
+    server: ((server))
+    certificate_authority: ((certificate_authority))
+    namespace: ((kubernetes-namespace))
+    token: ((token))
 
 jobs:
 - name: docker-build-and-push
